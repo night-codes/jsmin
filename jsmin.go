@@ -121,53 +121,24 @@ func (m *minifier) peek() int {
 */
 
 func (m *minifier) next() int {
-	c := m.get()
-	if c == '/' {
+	codeunit := m.get()
+	if codeunit == '/' {
 		switch m.peek() {
 		case '/':
 			for {
-				c = m.get()
-				if c <= '\n' {
+				codeunit = m.get()
+				if codeunit <= '\n' {
 					break
 				}
 			}
 		case '*':
 			m.get()
-			// Preserve license comments (/*!)
-			if m.peek() == '!' {
-				m.get()
-				m.putc('/')
-				m.putc('*')
-				m.putc('!')
-				for c != 0 {
-					c = m.get()
-					switch c {
-					case '*':
-						if m.peek() == '/' {
-							m.get()
-							c = 0
-						} else {
-							m.putc(c)
-						}
-					case eof:
-						m.error("Unterminated comment.")
-						return eof
-					default:
-						m.putc(c)
-					}
-				}
-				m.putc('*')
-				m.putc('/')
-				c = '\n'
-				break
-			}
-			// --
-			for c != ' ' {
+			for codeunit != ' ' {
 				switch m.get() {
 				case '*':
 					if m.peek() == '/' {
 						m.get()
-						c = ' '
+						codeunit = ' '
 					}
 				case eof:
 					m.error("Unterminated comment.")
@@ -177,8 +148,8 @@ func (m *minifier) next() int {
 		}
 	}
 	m.theY = m.theX
-	m.theX = c
-	return c
+	m.theX = codeunit
+	return codeunit
 }
 
 /* action -- do something! What you do is determined by the argument:
@@ -192,8 +163,8 @@ func (m *minifier) putc(c int) {
 	m.w.WriteByte(byte(c))
 }
 
-func (m *minifier) action(d int) {
-	switch d {
+func (m *minifier) action(determined int) {
+	switch determined {
 	case 1:
 		m.putc(m.theA)
 		if (m.theY == '\n' || m.theY == ' ') &&
@@ -202,7 +173,7 @@ func (m *minifier) action(d int) {
 			m.putc(m.theY)
 		}
 		fallthrough
-	case 2:
+	case 2: // string
 		m.theA = m.theB
 		if m.theA == '\'' || m.theA == '"' || m.theA == '`' {
 			for {
@@ -222,12 +193,15 @@ func (m *minifier) action(d int) {
 			}
 		}
 		fallthrough
-	case 3:
+	case 3: // regexp
 		m.theB = m.next()
-		if m.theB == '/' && (m.theA == '(' || m.theA == ',' || m.theA == '=' || m.theA == ':' ||
+
+		if m.theB == '/' && (m.theA == ' ' || m.theA == '(' || m.theA == ',' || m.theA == '=' || m.theA == ':' ||
 			m.theA == '[' || m.theA == '!' || m.theA == '&' || m.theA == '|' ||
 			m.theA == '?' || m.theA == '+' || m.theA == '-' || m.theA == '~' ||
-			m.theA == '*' || m.theA == '/' || m.theA == '{' || m.theA == '\n') {
+			m.theA == '*' || m.theA == '/' || m.theA == '{' || m.theA == '}' ||
+			m.theA == ';') {
+
 			m.putc(m.theA)
 			if m.theA == '/' || m.theA == '*' {
 				m.putc(' ')
