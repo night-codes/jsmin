@@ -36,8 +36,8 @@ if (is.ua.indexOf('opera') &gt;= 0) {
     is.ie = is.ns = false;
     is.opera = true;
 }
-// e.exports=function(e){return /^(.*:)?\//i.test(e)};
-e.exports=function(e){return /^(.*:)?\//i.test(e)};
+// e.exports=function(e){return       /^(.*:)?\//i.test(e)};
+e.exports=function(e){return      /^(.*:)?\//i.test(e)};
 
 if (is.ua.indexOf('gecko') &gt;= 0) {
     is.ie = is.ns = false;

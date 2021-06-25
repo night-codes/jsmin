@@ -159,8 +159,14 @@ func (m *minifier) next() int {
    action treats a string as a single character. Wow!
    action recognizes a regular expression if it is preceded by ( or , or =.
 */
+var checkA = [6]byte{}
+
 func (m *minifier) putc(c int) {
 	m.w.WriteByte(byte(c))
+	for i := 0; i < 5; i++ {
+		checkA[i] = checkA[i+1]
+	}
+	checkA[5] = byte(c)
 }
 
 func (m *minifier) action(determined int) {
@@ -196,7 +202,7 @@ func (m *minifier) action(determined int) {
 	case 3: // regexp
 		m.theB = m.next()
 
-		if m.theB == '/' && (m.theA == ' ' || m.theA == '(' || m.theA == ',' || m.theA == '=' || m.theA == ':' ||
+		if m.theB == '/' && ((m.theA == ' ' && string(checkA[:]) == "return") || m.theA == '(' || m.theA == ',' || m.theA == '=' || m.theA == ':' ||
 			m.theA == '[' || m.theA == '!' || m.theA == '&' || m.theA == '|' ||
 			m.theA == '?' || m.theA == '+' || m.theA == '-' || m.theA == '~' ||
 			m.theA == '*' || m.theA == '/' || m.theA == '{' || m.theA == '}' ||
