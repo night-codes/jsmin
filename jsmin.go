@@ -160,6 +160,7 @@ func (m *minifier) next() int {
    action recognizes a regular expression if it is preceded by ( or , or =.
 */
 var checkA = [6]byte{}
+var retw = "return"
 
 func (m *minifier) putc(c int) {
 	m.w.WriteByte(byte(c))
@@ -173,36 +174,44 @@ func (m *minifier) action(determined int) {
 	switch determined {
 	case 1:
 		m.putc(m.theA)
-		if (m.theY == '\n' || m.theY == ' ') &&
-			(m.theA == '+' || m.theA == '-' || m.theA == '*' || m.theA == '/') &&
-			(m.theB == '+' || m.theB == '-' || m.theB == '*' || m.theB == '/') {
-			m.putc(m.theY)
+		if m.theB != '/' || m.theA != 'n' || string(checkA[:]) != retw {
+			if (m.theY == '\n' || m.theY == ' ') &&
+				(m.theA == '+' || m.theA == '-' || m.theA == '*' || m.theA == '/') &&
+				(m.theB == '+' || m.theB == '-' || m.theB == '*' || m.theB == '/') {
+				m.putc(m.theY)
+			}
 		}
 		fallthrough
 	case 2: // string
-		m.theA = m.theB
-		if m.theA == '\'' || m.theA == '"' || m.theA == '`' {
-			for {
-				m.putc(m.theA)
-				m.theA = m.get()
-				if m.theA == m.theB {
-					break
-				}
-				if m.theA == '\\' {
+		if m.theB != '/' || m.theA != 'n' || string(checkA[:]) != retw {
+			m.theA = m.theB
+			if m.theA == '\'' || m.theA == '"' || m.theA == '`' {
+				for {
 					m.putc(m.theA)
 					m.theA = m.get()
-				}
-				if m.theA == eof {
-					m.error("Unterminated string literal.")
-					return
+					if m.theA == m.theB {
+						break
+					}
+					if m.theA == '\\' {
+						m.putc(m.theA)
+						m.theA = m.get()
+					}
+					if m.theA == eof {
+						m.error("Unterminated string literal.")
+						return
+					}
 				}
 			}
 		}
 		fallthrough
 	case 3: // regexp
-		m.theB = m.next()
+		if m.theB != '/' || m.theA != 'n' || string(checkA[:]) != retw {
+			m.theB = m.next()
+		} else {
+			m.theA = ' '
+		}
 
-		if m.theB == '/' && ((m.theA == ' ' && string(checkA[:]) == "return") || m.theA == '(' || m.theA == ',' || m.theA == '=' || m.theA == ':' ||
+		if m.theB == '/' && ((m.theA == ' ' && string(checkA[:]) == retw) || m.theA == '(' || m.theA == ',' || m.theA == '=' || m.theA == ':' ||
 			m.theA == '[' || m.theA == '!' || m.theA == '&' || m.theA == '|' ||
 			m.theA == '?' || m.theA == '+' || m.theA == '-' || m.theA == '~' ||
 			m.theA == '*' || m.theA == '/' || m.theA == '{' || m.theA == '}' ||
